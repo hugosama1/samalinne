@@ -2,6 +2,7 @@ package com.hugosama.samalinne;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -10,11 +11,12 @@ import android.widget.ImageView;
 import com.hugosama.samalinne.data.SamalinneContract.MessagesEntry;
 import com.hugosama.samalinne.data.SamalinneDbHelper;
 
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
-
 public class MainActivity extends FragmentActivity {
 
+    private static int TOTAL_IMAGE_FILES = 21;
+    private static int TOTAL_SONG_FILES = 5;
+
+    private MediaPlayer mediaPlayer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -24,15 +26,30 @@ public class MainActivity extends FragmentActivity {
         writer.setCharacterDelay(150);
         writer.animateText(getMessage());
         ImageView imgView = (ImageView) findViewById(R.id.imgBackgroud);
-        int imgId = getRandomImage();
+        int imgId = getRandomResource("img_","drawable",TOTAL_IMAGE_FILES);
         imgView.setImageResource(imgId);
+        mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
+        mediaPlayer.start(); // no need to call prepare(); create() does that for you
     }
-    private int getRandomImage() {
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        mediaPlayer.pause();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        mediaPlayer.start();
+    }
+
+    private int getRandomResource(String prefix, String res_folder, int total_files) {
         // nextInt is normally exclusive of the top value,
         // so add 1 to make it inclusive
-        int randomNum = 1 + (int)(Math.random() * 21 );
-            int imgId = getResources().getIdentifier("img_"+5, "drawable", getPackageName());
-        return imgId;
+        int randomNum = 1 + (int)(Math.random() * total_files );
+        int resId = getResources().getIdentifier(prefix+randomNum, res_folder, getPackageName());
+        return resId;
     }
 
     private String getMessage() {
