@@ -2,6 +2,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context="com.hugosama.samalinne.MainActivityFragment"
     tools:showIn="@layout/main_activity">
 
@@ -25,5 +26,39 @@
         android:shadowDx="2"
         android:shadowDy="3"
         android:shadowRadius="3"/>
+<android.support.v7.widget.LinearLayoutCompat
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="top|right"
+    android:layout_marginEnd="@dimen/activity_horizontal_margin"
+    android:layout_marginTop="@dimen/activity_vertical_margin"
+    android:layout_marginRight="@dimen/activity_horizontal_margin">
+    <android.support.v7.widget.AppCompatTextView
+        android:id="@+id/txtMessageDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:textColor="#fcfcfc"
+        android:textStyle="bold"
+        android:shadowColor="#020202"
+        android:shadowDx="2"
+        android:shadowDy="3"
+        android:shadowRadius="3"
+        android:layout_marginRight="@dimen/activity_horizontal_margin"
+        android:text="10/10/10"/>
+
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/btnMessageDate"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:layout_gravity="end"
+        android:src="@android:drawable/ic_menu_my_calendar"
+        app:fabSize="mini"
+        android:onClick="showDatePickerDialog"
+        />
+</android.support.v7.widget.LinearLayoutCompat>
+
+
 
 </FrameLayout>
