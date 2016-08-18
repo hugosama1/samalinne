@@ -55,7 +55,15 @@
         android:layout_gravity="end"
         android:src="@android:drawable/ic_menu_my_calendar"
         app:fabSize="mini"
-        android:onClick="showDatePickerDialog"
+        />
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/btnShareWhatsapp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:layout_gravity="end"
+        android:src="@android:drawable/ic_menu_share"
+        app:fabSize="mini"
         />
 </android.support.v7.widget.LinearLayoutCompat>
 

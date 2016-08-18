@@ -2,32 +2,45 @@ package com.hugosama.samalinne;
 
 import android.app.DatePickerDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.hugosama.samalinne.data.SamalinneContract.MessagesEntry;
 import com.hugosama.samalinne.data.SamalinneDbHelper;
 
+import java.io.File;
 import java.util.Calendar;
+import java.util.Date;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 public class MainActivity extends FragmentActivity {
 
     private static int TOTAL_IMAGE_FILES = 21;
     private static int TOTAL_SONG_FILES = 5;
+    private int year;
+    private int month;
+    private int day;
     @BindView(R.id.txtMessageDate)  TextView txtMessageDate;
     @BindView(R.id.txt_message) Typewriter txtWriter;
+    @BindView(R.id.imgBackgroud) ImageView imgView;
     private MediaPlayer mediaPlayer;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,15 +48,10 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.main_activity);
         ButterKnife.bind(this);
         setMessage(System.currentTimeMillis());
-        ImageView imgView = (ImageView) findViewById(R.id.imgBackgroud);
-        int imgId = getRandomResource("img_","drawable",TOTAL_IMAGE_FILES);
-        imgView.setImageResource(imgId);
-        mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
-        playMusic();
         final Calendar c = Calendar.getInstance();
-        int year = c.get(Calendar.YEAR);
-        int month = c.get(Calendar.MONTH);
-        int day = c.get(Calendar.DAY_OF_MONTH);
+        year = c.get(Calendar.YEAR);
+        month = c.get(Calendar.MONTH);
+        day = c.get(Calendar.DAY_OF_MONTH);
         this.setDateText(year,month,day);
     }
 
@@ -51,6 +59,12 @@ public class MainActivity extends FragmentActivity {
         //Add a character every 150ms
         txtWriter.setCharacterDelay(150);
         txtWriter.animateText(getMessage(timeInMillis));
+        //set random background
+        int imgId = getRandomResource("img_","drawable",TOTAL_IMAGE_FILES);
+        imgView.setImageResource(imgId);
+        //play random music
+        mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
+        playMusic();
     }
 
     @Override
@@ -115,16 +129,22 @@ public class MainActivity extends FragmentActivity {
         return message;
     }
 
+    /**
+     * Sets the date of the message on screen and updates current date properties (year,month,day)
+     * @param year
+     * @param monthOfYear
+     * @param dayOfMonth
+     */
     private void setDateText( int year, int monthOfYear, int dayOfMonth) {
-        this.txtMessageDate.setText(dayOfMonth + "/" + monthOfYear + "/" + year );
+        this.year = year;
+        this.month = monthOfYear;
+        this.day = dayOfMonth;
+        this.txtMessageDate.setText(dayOfMonth + "/" + (monthOfYear+1) + "/" + year );
     }
 
+    @OnClick(R.id.btnMessageDate)
     public void showDatePickerDialog(View v) {
-        Log.d("","SHOW DATE PICKER");
         final Calendar c = Calendar.getInstance();
-        int year = c.get(Calendar.YEAR);
-        int month = c.get(Calendar.MONTH);
-        int day = c.get(Calendar.DAY_OF_MONTH);
         DatePickerDialog datePickerDialog = new DatePickerDialog(this, new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
@@ -138,6 +158,71 @@ public class MainActivity extends FragmentActivity {
         datePickerDialog.getDatePicker().setMinDate(c.getTimeInMillis());
         datePickerDialog.show();
     }
+
+    @OnClick(R.id.btnShareWhatsapp)
+    public void shareScreenshot(View v) {
+        /** * Show share dialog BOTH image and text */
+        String imagePath = takeScreenshot();
+        if(imagePath ==null) {
+            return;
+        }
+        Uri imageUri = Uri.parse(imagePath);
+        Intent shareIntent = new Intent();
+        shareIntent.setAction(Intent.ACTION_SEND);
+        //Target whatsapp:
+        shareIntent.setPackage("com.whatsapp");
+        //Add text and then Image URI
+        shareIntent.putExtra(Intent.EXTRA_TEXT, txtWriter.getText());
+        shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
+        shareIntent.setType("image/jpeg");
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivity(shareIntent);
+        } catch (android.content.ActivityNotFoundException ex) {
+            sendToast("Whatsapp no se encontraba instalado...");
+        }
+    }
+
+    private void openScreenshot(String path) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        Uri uri = Uri.parse(path);
+        intent.setDataAndType(uri, "image/*");
+        startActivity(intent);
+    }
+
+    private void sendToast(String message) {
+        Toast toast = Toast.makeText(this,message,Toast.LENGTH_LONG);
+        toast.show();
+    }
+    private String takeScreenshot() {
+        Date now = new Date();
+        android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now);
+        File imageFile = null;
+        String path = null;
+        try {
+            // create bitmap screen capture
+            View v1 = getWindow().getDecorView().getRootView();
+            Bitmap bitmap =screenShot(v1);
+            path = MediaStore.Images.Media.insertImage(getContentResolver(),bitmap , "Samalinne", this.txtMessageDate.getText().toString());
+            openScreenshot(path);
+        } catch (Throwable e) {
+            Log.e("", "takeScreenshot: ",e );
+            // Several error may come out with file handling or OOM
+            sendToast("Error al tomar captura de pantalla, favor de contactar a hugo !");
+            e.printStackTrace();
+        }
+        return path;
+    }
+
+    public Bitmap screenShot(View view) {
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(),
+                view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        view.draw(canvas);
+        return bitmap;
+    }
+
 
 
 
