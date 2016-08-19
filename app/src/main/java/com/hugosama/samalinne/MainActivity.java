@@ -63,6 +63,9 @@ public class MainActivity extends FragmentActivity {
         int imgId = getRandomResource("img_","drawable",TOTAL_IMAGE_FILES);
         imgView.setImageResource(imgId);
         //play random music
+        if(mediaPlayer != null) {
+            mediaPlayer.stop();
+        }
         mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
         playMusic();
     }
