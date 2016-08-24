@@ -9,9 +9,12 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.View;
@@ -22,19 +25,27 @@ import android.widget.Toast;
 
 import com.hugosama.samalinne.data.SamalinneContract.MessagesEntry;
 import com.hugosama.samalinne.data.SamalinneDbHelper;
+import com.hugosama.samalinne.events.ErrorEvent;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
 public class MainActivity extends FragmentActivity {
-
+    private static String TAG = MainActivity.class.getSimpleName();
     private static int TOTAL_IMAGE_FILES = 21;
     private static int TOTAL_SONG_FILES = 5;
+    private String currentMessage;
+    private TextToSpeech textToSpeech;
     private int year;
     private int month;
     private int day;
@@ -42,23 +53,33 @@ public class MainActivity extends FragmentActivity {
     @BindView(R.id.txt_message) Typewriter txtWriter;
     @BindView(R.id.imgBackgroud) ImageView imgView;
     private MediaPlayer mediaPlayer;
+    private static int TEXT_TO_SPEECH_REQUEST_CODE = 1;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
         ButterKnife.bind(this);
+        EventBus.getDefault().register(this);
         setMessage(System.currentTimeMillis());
         final Calendar c = Calendar.getInstance();
         year = c.get(Calendar.YEAR);
         month = c.get(Calendar.MONTH);
         day = c.get(Calendar.DAY_OF_MONTH);
         this.setDateText(year,month,day);
+        update();
+    }
+
+    private void  update() {
+        if (Utils.isWifiConnected(this)) {
+            new UpdateManager(this).execute();
+        }
     }
 
     private void setMessage(long timeInMillis) {
+        currentMessage = getMessage(timeInMillis);
         //Add a character every 150ms
         txtWriter.setCharacterDelay(150);
-        txtWriter.animateText(getMessage(timeInMillis));
+        txtWriter.animateText(currentMessage);
         //set random background
         int imgId = getRandomResource("img_","drawable",TOTAL_IMAGE_FILES);
         imgView.setImageResource(imgId);
@@ -68,6 +89,46 @@ public class MainActivity extends FragmentActivity {
         }
         mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
         playMusic();
+        //say the message outloud
+        if( Utils.isWifiConnected(this)) {
+            Intent checkIntent = new Intent();
+            checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+            startActivityForResult(checkIntent, TEXT_TO_SPEECH_REQUEST_CODE);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == TEXT_TO_SPEECH_REQUEST_CODE) {
+            if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+                // success, create the TTS instance
+                textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+                    @Override
+                    public void onInit(int status) {
+                        // TODO Auto-generated method stub
+                        if(status == TextToSpeech.SUCCESS){
+                            int result=textToSpeech.setLanguage(new Locale("spa","MEX"));
+                            if(result==TextToSpeech.LANG_MISSING_DATA ||
+                                    result==TextToSpeech.LANG_NOT_SUPPORTED){
+                                Log.e("error", "This Language is not supported");
+                            }
+                            else{
+                                textToSpeech.speak(currentMessage, TextToSpeech.QUEUE_ADD, null);
+                            }
+                        }else {
+                            Log.e("error", "Initialization Failed!");
+                        }
+                    }
+                });
+            } else {
+                // missing data, install it
+                Log.d(TAG, "onActivityResult: instalar");
+                Intent installIntent = new Intent();
+                installIntent.setAction(
+                        TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                startActivity(installIntent);
+            }
+        }
     }
 
     @Override
@@ -198,6 +259,7 @@ public class MainActivity extends FragmentActivity {
         Toast toast = Toast.makeText(this,message,Toast.LENGTH_LONG);
         toast.show();
     }
+
     private String takeScreenshot() {
         Date now = new Date();
         android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now);
@@ -226,7 +288,10 @@ public class MainActivity extends FragmentActivity {
         return bitmap;
     }
 
-
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onErrorEvent(ErrorEvent errorEvent){
+        sendToast(errorEvent.getMessage());
+    }
 
 
 }

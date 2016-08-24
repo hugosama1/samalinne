@@ -15,11 +15,17 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "UPDATE_URL", '"http://hugosama.com:8080/samalinne.apk"'
+            buildConfigField "String", "BASE_UPDATE_URL", '"http://hugosama.com:8080"'
+            buildConfigField "String", "APK_NAME", '"samalinne.apk"'
         }
         debug {
             jniDebuggable false
             renderscriptDebuggable false
             pseudoLocalesEnabled true
+            buildConfigField "String", "UPDATE_URL", '"http://hugosama.com:8080/samalinne.apk"'
+            buildConfigField "String", "BASE_UPDATE_URL", '"http://hugosama.com:8080"'
+            buildConfigField "String", "APK_NAME", '"samalinne.apk"'
         }
     }
 }
@@ -33,6 +39,9 @@ dependencies {
     compile 'com.android.support:design:23.3.0'
     compile 'com.jakewharton:butterknife:8.0.1'
     apt 'com.jakewharton:butterknife-compiler:8.0.1'
+    compile 'com.squareup.retrofit2:retrofit:2.1.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.1.0'
+    compile 'org.greenrobot:eventbus:3.0.0'
 }
 
 
