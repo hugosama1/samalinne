@@ -23,13 +23,19 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.hugosama.samalinne.data.SamalinneContract;
 import com.hugosama.samalinne.data.SamalinneContract.MessagesEntry;
 import com.hugosama.samalinne.data.SamalinneDbHelper;
+import com.hugosama.samalinne.data.entities.DaoMaster;
+import com.hugosama.samalinne.data.entities.DaoSession;
+import com.hugosama.samalinne.data.entities.Message;
+import com.hugosama.samalinne.data.entities.MessageDao;
 import com.hugosama.samalinne.events.ErrorEvent;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.greenrobot.greendao.query.QueryBuilder;
 
 import java.io.File;
 import java.util.Calendar;
@@ -54,19 +60,24 @@ public class MainActivity extends FragmentActivity {
     @BindView(R.id.imgBackgroud) ImageView imgView;
     private MediaPlayer mediaPlayer;
     private static int TEXT_TO_SPEECH_REQUEST_CODE = 1;
+    private DaoSession mdaoSession;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_activity);
         ButterKnife.bind(this);
         EventBus.getDefault().register(this);
-        setMessage(System.currentTimeMillis());
+        SQLiteDatabase db = new SamalinneDbHelper(this).getWritableDatabase();
+        DaoMaster daoMaster = new DaoMaster(db);
+        mdaoSession = daoMaster.newSession();
         final Calendar c = Calendar.getInstance();
         year = c.get(Calendar.YEAR);
         month = c.get(Calendar.MONTH);
         day = c.get(Calendar.DAY_OF_MONTH);
         this.setDateText(year,month,day);
         update();
+        setMessage(System.currentTimeMillis());
     }
 
     private void  update() {
@@ -105,7 +116,6 @@ public class MainActivity extends FragmentActivity {
                 textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
                     @Override
                     public void onInit(int status) {
-                        // TODO Auto-generated method stub
                         if(status == TextToSpeech.SUCCESS){
                             int result=textToSpeech.setLanguage(new Locale("spa","MEX"));
                             if(result==TextToSpeech.LANG_MISSING_DATA ||
@@ -155,8 +165,6 @@ public class MainActivity extends FragmentActivity {
     }
 
     private int getRandomResource(String prefix, String res_folder, int total_files) {
-        // nextInt is normally exclusive of the top value,
-        // so add 1 to make it inclusive
         int randomNum = 1 + (int)(Math.random() * total_files );
         int resId = getResources().getIdentifier(prefix+randomNum, res_folder, getPackageName());
         return resId;
@@ -164,32 +172,13 @@ public class MainActivity extends FragmentActivity {
 
     private String getMessage(long timeInMillis) {
         String message = "Ups! no se pudo encontrar mensaje para hoy, pero hugo dejó el predeterminado: Te Amo";
-        SQLiteDatabase db = new SamalinneDbHelper(this).getReadableDatabase();
-        long currentTime = timeInMillis/ 1000;
-        Cursor cursor = db.query(MessagesEntry.TABLE_NAME,
-                new String[]{MessagesEntry.COLUMN_MESSAGE},
-                "strftime('%m-%d', " + MessagesEntry.COLUMN_DATE + ", 'unixepoch' ) = " +
-                        "strftime('%m-%d', '"+String.valueOf(currentTime)+"', 'unixepoch')",
-                null,
-                null,
-                null,
-                null
-        );
-        if(cursor.moveToNext()) {
-            message = "\""+cursor.getString(0)+"\"";
-        }
-        cursor.close();
-        cursor = db.query(MessagesEntry.TABLE_NAME,
-                new String[]{MessagesEntry.COLUMN_MESSAGE,MessagesEntry.COLUMN_DATE,"strftime('%m-%d', " + MessagesEntry.COLUMN_DATE + ", 'unixepoch' )"},
-                null,
-                null,
-                null,
-                null,
-                null
-        );
-        while( cursor.moveToNext()) {
-            Log.e("", cursor.getString(0) +" | " + cursor.getString(1) +" | " + cursor.getString(2) + "\n");
-        }
+        long currentTime = SamalinneContract.normalizeDate(timeInMillis);
+        MessageDao messageDao= mdaoSession.getMessageDao();
+        QueryBuilder<Message> qb = messageDao.queryBuilder();
+        qb.where(MessageDao.Properties.Date.eq(currentTime));
+        Message dailyMessage = qb.count() >= 1 ? qb.list().get(0) : null;
+        if( dailyMessage != null)
+            message = "\""+dailyMessage.getMessage()+"\"";
         return message;
     }
 
@@ -217,7 +206,7 @@ public class MainActivity extends FragmentActivity {
                 setMessage(c.getTimeInMillis());
             }
         }, year, month, day);
-        datePickerDialog.getDatePicker().setMaxDate(c.getTimeInMillis());
+        datePickerDialog.getDatePicker().setMaxDate(new Date().getTime()+(1000*60*60*24));
         c.set(year,0,1);
         datePickerDialog.getDatePicker().setMinDate(c.getTimeInMillis());
         datePickerDialog.show();

@@ -12,7 +12,7 @@ import java.util.Calendar;
  * Created by hgomez on 11/02/2016.
  */
 public class SamalinneDbHelper extends SQLiteOpenHelper {
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     static final String DATABASE_NAME = "samalinne.db";
 
     public SamalinneDbHelper(Context context ) {
@@ -285,7 +285,7 @@ public class SamalinneDbHelper extends SQLiteOpenHelper {
         long millisInADay = 1000 * 60 * 60 * 24;
         for( String message : messagesArray) {
             SQL_POPULATE_MESSAGES += "(" +
-                    "\""+message + "\",\""+ date/1000 + "\"),"; // entre mil porque sqlite lo maneja en segundos
+                    "\""+message + "\",\""+ SamalinneContract.normalizeDate(date) + "\"),";
             date += millisInADay;
         }
         SQL_POPULATE_MESSAGES = SQL_POPULATE_MESSAGES.substring(0,SQL_POPULATE_MESSAGES.length() - 1);
@@ -295,6 +295,7 @@ public class SamalinneDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
+        db.execSQL("DROP TABLE IF EXISTS " + MessagesEntry.TABLE_NAME);
+        onCreate(db);
     }
 }

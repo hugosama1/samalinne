@@ -28,9 +28,16 @@ android {
             buildConfigField "String", "APK_NAME", '"samalinne.apk"'
         }
     }
+//greenDao
+    sourceSets {
+        main {
+            java.srcDirs = ['src/main/java', 'build/generated/source/greendao']
+        }
+    }
 }
 
 apply plugin: 'com.neenbedankt.android-apt'
+apply plugin: 'org.greenrobot.greendao'
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
@@ -42,6 +49,8 @@ dependencies {
     compile 'com.squareup.retrofit2:retrofit:2.1.0'
     compile 'com.squareup.retrofit2:converter-gson:2.1.0'
     compile 'org.greenrobot:eventbus:3.0.0'
+    //greenDao
+    compile 'org.greenrobot:greendao:3.0.1'
 }
 
 
