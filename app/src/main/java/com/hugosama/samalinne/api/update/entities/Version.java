@@ -6,6 +6,15 @@ package com.hugosama.samalinne.api.update.entities;
 public class Version {
     private int version;
     private String url;
+    private long messagesVersion;
+
+    public long getMessagesVersion() {
+        return messagesVersion;
+    }
+
+    public void setMessagesVersion(long messagesVersion) {
+        this.messagesVersion = messagesVersion;
+    }
 
     public int getVersion() {
         return version;

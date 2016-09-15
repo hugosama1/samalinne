@@ -23,6 +23,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.hugosama.samalinne.data.SamalinneContract;
 import com.hugosama.samalinne.data.SamalinneContract.MessagesEntry;
 import com.hugosama.samalinne.data.SamalinneDbHelper;
@@ -38,8 +40,10 @@ import org.greenrobot.eventbus.ThreadMode;
 import org.greenrobot.greendao.query.QueryBuilder;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import butterknife.BindView;
@@ -101,7 +105,7 @@ public class MainActivity extends FragmentActivity {
         mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
         playMusic();
         //say the message outloud
-        if( Utils.isWifiConnected(this)) {
+        if( Utils.isWifiConnected(this) && !Utils.isOnSilence(this)) {
             Intent checkIntent = new Intent();
             checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
             startActivityForResult(checkIntent, TEXT_TO_SPEECH_REQUEST_CODE);
@@ -148,8 +152,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void playMusic() {
-        AudioManager am = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-        if (am.getRingerMode() == AudioManager.RINGER_MODE_NORMAL) {
+        if ( !Utils.isOnSilence(this)) {
             mediaPlayer.start();
         }
     }
@@ -179,6 +182,8 @@ public class MainActivity extends FragmentActivity {
         Message dailyMessage = qb.count() >= 1 ? qb.list().get(0) : null;
         if( dailyMessage != null)
             message = "\""+dailyMessage.getMessage()+"\"";
+        Type listOfTestObject = new TypeToken<List<Message>>(){}.getType();
+        Log.d(TAG, new Gson().toJson(messageDao.loadAll(),listOfTestObject));
         return message;
     }
 

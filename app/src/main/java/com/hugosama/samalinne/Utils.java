@@ -1,6 +1,7 @@
 package com.hugosama.samalinne;
 
 import android.content.Context;
+import android.media.AudioManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 
@@ -14,4 +15,10 @@ public class Utils {
         NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
         return mWifi != null && mWifi.isConnected();
     }
+
+    public static boolean isOnSilence(Context context) {
+        AudioManager am = (AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+        return am.getRingerMode() < AudioManager.RINGER_MODE_NORMAL;
+    }
+
 }

@@ -51,6 +51,8 @@ dependencies {
     compile 'org.greenrobot:eventbus:3.0.0'
     //greenDao
     compile 'org.greenrobot:greendao:3.0.1'
+    compile 'com.facebook.stetho:stetho:1.4.1'
+
 }
 
 
