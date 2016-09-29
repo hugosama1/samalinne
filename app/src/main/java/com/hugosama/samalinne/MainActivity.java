@@ -25,6 +25,8 @@ import android.widget.Toast;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.hugosama.samalinne.api.update.ServiceGenerator;
+import com.hugosama.samalinne.api.update.UpdateService;
 import com.hugosama.samalinne.data.SamalinneContract;
 import com.hugosama.samalinne.data.SamalinneContract.MessagesEntry;
 import com.hugosama.samalinne.data.SamalinneDbHelper;
@@ -49,6 +51,9 @@ import java.util.Locale;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends FragmentActivity {
     private static String TAG = MainActivity.class.getSimpleName();
@@ -87,7 +92,28 @@ public class MainActivity extends FragmentActivity {
     private void  update() {
         if (Utils.isWifiConnected(this)) {
             new UpdateManager(this).execute();
+            UpdateService updateService = ServiceGenerator.createService(UpdateService.class);
+            final MessageDao messageDao = this.mdaoSession.getMessageDao();
+            List<Message> lastMessage = messageDao.queryBuilder().orderDesc(MessageDao.Properties.Date).limit(1).list();
+            long lastDate = lastMessage.size() > 0 ? lastMessage.get(0).getDate() : 0;
+            Call<List<Message>> messagesCall = updateService.getMessages(lastDate);
+            messagesCall.enqueue(new Callback<List<Message>>() {
+                @Override
+                public void onResponse(Call<List<Message>> call, Response<List<Message>> response) {
+                    Log.d(TAG, response.body().toString());
+                    for (Message message:
+                         response.body()) {
+                        messageDao.insertOrReplace(message);
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<List<Message>> call, Throwable t) {
+
+                }
+            });
         }
+
     }
 
     private void setMessage(long timeInMillis) {
