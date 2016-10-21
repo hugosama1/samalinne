@@ -7,6 +7,18 @@ public class ErrorEvent {
     private String message;
     private String devMessage;
 
+    public ErrorEvent() {
+
+    }
+
+    public ErrorEvent(String message) {
+        this.message = message;
+    }
+    public ErrorEvent(String message,String devMessage) {
+        this.message = message;
+        this.devMessage = devMessage;
+    }
+
     public String getMessage() {
         return message;
     }

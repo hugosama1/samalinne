@@ -3,6 +3,7 @@ package com.hugosama.samalinne;
 import android.app.DatePickerDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ConfigurationInfo;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Bitmap;
@@ -69,7 +70,6 @@ public class MainActivity extends FragmentActivity {
     @BindView(R.id.imgBackgroud) ImageView imgView;
     private MediaPlayer mediaPlayer;
     private static int TEXT_TO_SPEECH_REQUEST_CODE = 1;
-    private DaoSession mdaoSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,9 +77,6 @@ public class MainActivity extends FragmentActivity {
         setContentView(R.layout.main_activity);
         ButterKnife.bind(this);
         EventBus.getDefault().register(this);
-        SQLiteDatabase db = new SamalinneDbHelper(this).getWritableDatabase();
-        DaoMaster daoMaster = new DaoMaster(db);
-        mdaoSession = daoMaster.newSession();
         final Calendar c = Calendar.getInstance();
         year = c.get(Calendar.YEAR);
         month = c.get(Calendar.MONTH);
@@ -89,33 +86,20 @@ public class MainActivity extends FragmentActivity {
         setMessage(System.currentTimeMillis());
     }
 
+    /**
+     * updates messages
+     */
     private void  update() {
         if (Utils.isWifiConnected(this)) {
             new UpdateManager(this).execute();
-            UpdateService updateService = ServiceGenerator.createService(UpdateService.class);
-            final MessageDao messageDao = this.mdaoSession.getMessageDao();
-            List<Message> lastMessage = messageDao.queryBuilder().orderDesc(MessageDao.Properties.Date).limit(1).list();
-            long lastDate = lastMessage.size() > 0 ? lastMessage.get(0).getDate() : 0;
-            Call<List<Message>> messagesCall = updateService.getMessages(lastDate);
-            messagesCall.enqueue(new Callback<List<Message>>() {
-                @Override
-                public void onResponse(Call<List<Message>> call, Response<List<Message>> response) {
-                    Log.d(TAG, response.body().toString());
-                    for (Message message:
-                         response.body()) {
-                        messageDao.insertOrReplace(message);
-                    }
-                }
-
-                @Override
-                public void onFailure(Call<List<Message>> call, Throwable t) {
-
-                }
-            });
         }
 
     }
 
+    /**
+     * sets the current message on screen, the song and image
+     * @param timeInMillis
+     */
     private void setMessage(long timeInMillis) {
         currentMessage = getMessage(timeInMillis);
         //Add a character every 150ms
@@ -193,23 +177,33 @@ public class MainActivity extends FragmentActivity {
         playMusic();
     }
 
+    /**
+     * calculates a random number and returns a random resource file (song or image)
+     * @param prefix currently only img_ and song_ are supported
+     * @param res_folder the resource folder where the resources are located
+     * @param total_files number of selectable resources in folder
+     * @return
+     */
     private int getRandomResource(String prefix, String res_folder, int total_files) {
         int randomNum = 1 + (int)(Math.random() * total_files );
         int resId = getResources().getIdentifier(prefix+randomNum, res_folder, getPackageName());
         return resId;
     }
 
+    /**
+     * Gets today's message
+     * @param timeInMillis the current day to deliver the message
+     * @return
+     */
     private String getMessage(long timeInMillis) {
         String message = "Ups! no se pudo encontrar mensaje para hoy, pero hugo dejó el predeterminado: Te Amo";
         long currentTime = SamalinneContract.normalizeDate(timeInMillis);
-        MessageDao messageDao= mdaoSession.getMessageDao();
+        MessageDao messageDao= ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
         QueryBuilder<Message> qb = messageDao.queryBuilder();
         qb.where(MessageDao.Properties.Date.eq(currentTime));
         Message dailyMessage = qb.count() >= 1 ? qb.list().get(0) : null;
         if( dailyMessage != null)
             message = "\""+dailyMessage.getMessage()+"\"";
-        Type listOfTestObject = new TypeToken<List<Message>>(){}.getType();
-        Log.d(TAG, new Gson().toJson(messageDao.loadAll(),listOfTestObject));
         return message;
     }
 
@@ -226,6 +220,10 @@ public class MainActivity extends FragmentActivity {
         this.txtMessageDate.setText(dayOfMonth + "/" + (monthOfYear+1) + "/" + year );
     }
 
+    /**
+     * Creates a calendar datepicker to change the message of the day
+     * @param v
+     */
     @OnClick(R.id.btnMessageDate)
     public void showDatePickerDialog(View v) {
         final Calendar c = Calendar.getInstance();
@@ -243,6 +241,10 @@ public class MainActivity extends FragmentActivity {
         datePickerDialog.show();
     }
 
+    /**
+     * shares screenshot to whatsapp
+     * @param v
+     */
     @OnClick(R.id.btnShareWhatsapp)
     public void shareScreenshot(View v) {
         /** * Show share dialog BOTH image and text */
@@ -263,7 +265,9 @@ public class MainActivity extends FragmentActivity {
         try {
             startActivity(shareIntent);
         } catch (android.content.ActivityNotFoundException ex) {
-            sendToast("Whatsapp no se encontraba instalado...");
+            ErrorEvent errorEvent = new ErrorEvent("Whatsapp no se encontraba instalado...",
+                    ex.getMessage());
+            EventBus.getDefault().post(errorEvent);
         }
     }
 
@@ -283,7 +287,6 @@ public class MainActivity extends FragmentActivity {
     private String takeScreenshot() {
         Date now = new Date();
         android.text.format.DateFormat.format("yyyy-MM-dd_hh:mm:ss", now);
-        File imageFile = null;
         String path = null;
         try {
             // create bitmap screen capture
@@ -292,10 +295,10 @@ public class MainActivity extends FragmentActivity {
             path = MediaStore.Images.Media.insertImage(getContentResolver(),bitmap , "Samalinne", this.txtMessageDate.getText().toString());
             openScreenshot(path);
         } catch (Throwable e) {
-            Log.e("", "takeScreenshot: ",e );
             // Several error may come out with file handling or OOM
-            sendToast("Error al tomar captura de pantalla, favor de contactar a hugo !");
-            e.printStackTrace();
+            ErrorEvent errorEvent = new ErrorEvent("Error al tomar captura de pantalla, favor de contactar a hugo !",
+            e.getMessage());
+            EventBus.getDefault().post(errorEvent);
         }
         return path;
     }
@@ -311,7 +314,9 @@ public class MainActivity extends FragmentActivity {
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onErrorEvent(ErrorEvent errorEvent){
         sendToast(errorEvent.getMessage());
+        if(BuildConfig.DEBUG) Log.e(TAG, errorEvent.getDevMessage());
     }
+
 
 
 }

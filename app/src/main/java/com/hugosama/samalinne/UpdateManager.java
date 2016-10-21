@@ -16,12 +16,19 @@ import android.util.Log;
 import com.hugosama.samalinne.api.update.ServiceGenerator;
 import com.hugosama.samalinne.api.update.UpdateService;
 import com.hugosama.samalinne.api.update.entities.Version;
+import com.hugosama.samalinne.data.entities.Message;
+import com.hugosama.samalinne.data.entities.MessageDao;
 import com.hugosama.samalinne.events.ErrorEvent;
 
 import org.greenrobot.eventbus.EventBus;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * Created by hugo on 8/22/16.
@@ -35,7 +42,7 @@ public class UpdateManager extends AsyncTask<Void,Void,Void>{
     }
 
 
-    public void update(){
+    public void updateApplication() {
         Version version = getCurrentVersion();
         if( version == null || version.getVersion() <= BuildConfig.VERSION_CODE ) {
             return;
@@ -87,7 +94,7 @@ public class UpdateManager extends AsyncTask<Void,Void,Void>{
         try {
             UpdateService updateService = ServiceGenerator.createService(UpdateService.class);
             version = updateService.getVersion().execute().body();
-        }catch (IOException ex) {
+        } catch (IOException ex) {
             Log.e(TAG, "update: ",ex);
             ErrorEvent error = new ErrorEvent();
             error.setDevMessage(ex.getMessage());
@@ -97,9 +104,29 @@ public class UpdateManager extends AsyncTask<Void,Void,Void>{
         return version;
     }
 
+    public void updateMessages() {
+        UpdateService updateService = ServiceGenerator.createService(UpdateService.class);
+        final MessageDao messageDao = ((Samalinne) context.getApplicationContext() ).getDaoSession().getMessageDao();
+        List<Message> lastMessage = messageDao.queryBuilder().orderDesc(MessageDao.Properties.Date).limit(1).list();
+        long lastDate = lastMessage.size() > 0 ? lastMessage.get(0).getDate() : 0;
+        Call<List<Message>> messagesCall = updateService.getMessages(lastDate);
+        try {
+            Response<List<Message>> response = messagesCall.execute();
+            if(BuildConfig.DEBUG && response.body() !=null)Log.d(TAG, response.body().toString());
+            for (Message message:
+                    response.body()) {
+                messageDao.insertOrReplace(message);
+            }
+        } catch(IOException ex) {
+            ErrorEvent errorEvent = new ErrorEvent("No se pudieron obtener los mensajes",ex.getMessage());
+            EventBus.getDefault().post(errorEvent);
+        }
+    }
+
     @Override
     protected Void doInBackground(Void... params) {
-        this.update();
+        this.updateMessages();
+        //this.updateApplication();
         return null;
     }
 }
