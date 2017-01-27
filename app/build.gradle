@@ -24,7 +24,7 @@ android {
             renderscriptDebuggable false
             pseudoLocalesEnabled true
             buildConfigField "String", "UPDATE_URL", '"http://hugosama.com:8080/samalinne.apk"'
-            buildConfigField "String", "BASE_UPDATE_URL", '"http://10.26.180.35:8080"'
+            buildConfigField "String", "BASE_UPDATE_URL", '"http://hugosama.com:8080"'
             buildConfigField "String", "APK_NAME", '"samalinne.apk"'
         }
     }

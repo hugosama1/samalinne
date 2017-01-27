@@ -58,8 +58,8 @@ import retrofit2.Response;
 
 public class MainActivity extends FragmentActivity {
     private static String TAG = MainActivity.class.getSimpleName();
-    private static int TOTAL_IMAGE_FILES = 21;
-    private static int TOTAL_SONG_FILES = 5;
+    private static final int TOTAL_IMAGE_FILES = 21;
+    private static final int TOTAL_SONG_FILES = 5;
     private String currentMessage;
     private TextToSpeech textToSpeech;
     private int year;
@@ -196,7 +196,7 @@ public class MainActivity extends FragmentActivity {
      * @return
      */
     private String getMessage(long timeInMillis) {
-        String message = "Ups! no se pudo encontrar mensaje para hoy, pero hugo dejó el predeterminado: Te Amo";
+        String message = getString(R.string.default_daily_message);
         long currentTime = SamalinneContract.normalizeDate(timeInMillis);
         MessageDao messageDao= ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
         QueryBuilder<Message> qb = messageDao.queryBuilder();
@@ -265,7 +265,8 @@ public class MainActivity extends FragmentActivity {
         try {
             startActivity(shareIntent);
         } catch (android.content.ActivityNotFoundException ex) {
-            ErrorEvent errorEvent = new ErrorEvent("Whatsapp no se encontraba instalado...",
+            String errorMessage = getString(R.string.whatsapp_not_installed);
+            ErrorEvent errorEvent = new ErrorEvent(errorMessage,
                     ex.getMessage());
             EventBus.getDefault().post(errorEvent);
         }
@@ -296,8 +297,8 @@ public class MainActivity extends FragmentActivity {
             openScreenshot(path);
         } catch (Throwable e) {
             // Several error may come out with file handling or OOM
-            ErrorEvent errorEvent = new ErrorEvent("Error al tomar captura de pantalla, favor de contactar a hugo !",
-            e.getMessage());
+            String errorMessage = getString(R.string.error_image_not_captured);
+            ErrorEvent errorEvent = new ErrorEvent(errorMessage,e.getMessage());
             EventBus.getDefault().post(errorEvent);
         }
         return path;
