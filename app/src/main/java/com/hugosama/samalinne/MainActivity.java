@@ -36,6 +36,7 @@ import com.hugosama.samalinne.data.entities.DaoSession;
 import com.hugosama.samalinne.data.entities.Message;
 import com.hugosama.samalinne.data.entities.MessageDao;
 import com.hugosama.samalinne.events.ErrorEvent;
+import com.hugosama.samalinne.events.MessageEvent;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -196,8 +197,10 @@ public class MainActivity extends FragmentActivity {
      * @return
      */
     private String getMessage(long timeInMillis) {
+        Log.d(TAG, "getMessage: " + timeInMillis);
         String message = getString(R.string.default_daily_message);
         long currentTime = SamalinneContract.normalizeDate(timeInMillis);
+        Log.d(TAG, "getMessage: " + currentTime);
         MessageDao messageDao= ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
         QueryBuilder<Message> qb = messageDao.queryBuilder();
         qb.where(MessageDao.Properties.Date.eq(currentTime));
@@ -236,8 +239,7 @@ public class MainActivity extends FragmentActivity {
             }
         }, year, month, day);
         datePickerDialog.getDatePicker().setMaxDate(new Date().getTime()+(1000*60*60*24));
-        c.set(year,0,1);
-        datePickerDialog.getDatePicker().setMinDate(c.getTimeInMillis());
+
         datePickerDialog.show();
     }
 
@@ -318,6 +320,11 @@ public class MainActivity extends FragmentActivity {
         if(BuildConfig.DEBUG) Log.e(TAG, errorEvent.getDevMessage());
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(MessageEvent messageEvent){
+        Log.d(TAG, "onMessageEvent: llegaron mensajes");
+        this.setMessage(System.currentTimeMillis());
+    }
 
 
 }

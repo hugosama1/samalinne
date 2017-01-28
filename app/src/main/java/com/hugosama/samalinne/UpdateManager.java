@@ -19,6 +19,7 @@ import com.hugosama.samalinne.api.update.entities.Version;
 import com.hugosama.samalinne.data.entities.Message;
 import com.hugosama.samalinne.data.entities.MessageDao;
 import com.hugosama.samalinne.events.ErrorEvent;
+import com.hugosama.samalinne.events.MessageEvent;
 
 import org.greenrobot.eventbus.EventBus;
 
@@ -117,6 +118,7 @@ public class UpdateManager extends AsyncTask<Void,Void,Void>{
                     response.body()) {
                 messageDao.insertOrReplace(message);
             }
+            EventBus.getDefault().post(new MessageEvent());
         } catch(IOException ex) {
             ErrorEvent errorEvent = new ErrorEvent("No se pudieron obtener los mensajes",ex.getMessage());
             EventBus.getDefault().post(errorEvent);
