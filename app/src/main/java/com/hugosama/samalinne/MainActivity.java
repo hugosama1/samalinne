@@ -109,11 +109,7 @@ public class MainActivity extends FragmentActivity {
         //set random background
         int imgId = getRandomResource("img_","drawable",TOTAL_IMAGE_FILES);
         imgView.setImageResource(imgId);
-        //play random music
-        if(mediaPlayer != null) {
-            mediaPlayer.stop();
-        }
-        mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
+        resetPlayer();
         playMusic();
         //say the message outloud
         if( Utils.isWifiConnected(this) && !Utils.isOnSilence(this)) {
@@ -162,9 +158,16 @@ public class MainActivity extends FragmentActivity {
         pauseMusic();
     }
 
+    public void resetPlayer() {
+        //play random music
+        if(mediaPlayer != null) {
+            mediaPlayer.stop();
+        }
+        mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
+    }
+
     private void playMusic() {
-        if(mediaPlayer.isPlaying())mediaPlayer.stop();
-        if ( !Utils.isOnSilence(this)) {
+        if ( !Utils.isOnSilence(this) && !mediaPlayer.isPlaying()) {
             mediaPlayer.start();
         }
     }

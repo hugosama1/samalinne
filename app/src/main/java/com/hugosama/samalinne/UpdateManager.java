@@ -118,7 +118,8 @@ public class UpdateManager extends AsyncTask<Void,Void,Void>{
                     response.body()) {
                 messageDao.insertOrReplace(message);
             }
-            EventBus.getDefault().post(new MessageEvent());
+            if(response.body() != null && !response.body().isEmpty())
+                EventBus.getDefault().post(new MessageEvent());
         } catch(IOException ex) {
             ErrorEvent errorEvent = new ErrorEvent("No se pudieron obtener los mensajes",ex.getMessage());
             EventBus.getDefault().post(errorEvent);

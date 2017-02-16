@@ -20,6 +20,7 @@ import android.util.Log;
 
 import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.firebase.iid.FirebaseInstanceIdService;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 
 public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
@@ -37,6 +38,7 @@ public class MyFirebaseInstanceIDService extends FirebaseInstanceIdService {
         // Get updated InstanceID token.
         String refreshedToken = FirebaseInstanceId.getInstance().getToken();
         Log.d(TAG, "Refreshed token: " + refreshedToken);
+        FirebaseMessaging.getInstance().subscribeToTopic("samalinne");
 
         // If you want to send messages to this application instance or
         // manage this apps subscriptions on the server side, send the
