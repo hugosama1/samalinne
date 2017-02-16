@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "88145471548",
+    "firebase_url": "https://samalinne-d1375.firebaseio.com",
+    "project_id": "samalinne-d1375",
+    "storage_bucket": "samalinne-d1375.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:88145471548:android:1c715b78c7bfb1d6",
+        "android_client_info": {
+          "package_name": "com.hugosama.samalinne"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "88145471548-uc5hp30h0qoigb9n2pg5osfdnt1fehkf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfUmCq5UWQgI-EPi4j_PTZsCnm4NcHUmM"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

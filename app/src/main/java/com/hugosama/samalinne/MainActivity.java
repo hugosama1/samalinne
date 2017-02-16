@@ -163,6 +163,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void playMusic() {
+        if(mediaPlayer.isPlaying())mediaPlayer.stop();
         if ( !Utils.isOnSilence(this)) {
             mediaPlayer.start();
         }
@@ -197,10 +198,8 @@ public class MainActivity extends FragmentActivity {
      * @return
      */
     private String getMessage(long timeInMillis) {
-        Log.d(TAG, "getMessage: " + timeInMillis);
         String message = getString(R.string.default_daily_message);
         long currentTime = SamalinneContract.normalizeDate(timeInMillis);
-        Log.d(TAG, "getMessage: " + currentTime);
         MessageDao messageDao= ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
         QueryBuilder<Message> qb = messageDao.queryBuilder();
         qb.where(MessageDao.Properties.Date.eq(currentTime));
@@ -272,6 +271,15 @@ public class MainActivity extends FragmentActivity {
                     ex.getMessage());
             EventBus.getDefault().post(errorEvent);
         }
+    }
+
+    @OnClick(R.id.btnRandomMessage)
+    public void randomMessage() {
+        MessageDao messageDao= ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
+        QueryBuilder<Message> qb = messageDao.queryBuilder();
+        qb.orderRaw(" Random() ").limit(1);
+        Message randomMessage = qb.count() >= 1 ? qb.list().get(0) : null;
+        if( randomMessage != null) setMessage(randomMessage.getDate());
     }
 
     private void openScreenshot(String path) {
