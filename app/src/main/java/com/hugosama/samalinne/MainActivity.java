@@ -17,7 +17,10 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.DatePicker;
 import android.widget.ImageView;
@@ -57,7 +60,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends AppCompatActivity {
     private static String TAG = MainActivity.class.getSimpleName();
     private static final int TOTAL_IMAGE_FILES = 21;
     private static final int TOTAL_SONG_FILES = 5;
@@ -66,9 +69,12 @@ public class MainActivity extends FragmentActivity {
     private int year;
     private int month;
     private int day;
-    @BindView(R.id.txtMessageDate)  TextView txtMessageDate;
-    @BindView(R.id.txt_message) Typewriter txtWriter;
-    @BindView(R.id.imgBackgroud) ImageView imgView;
+    @BindView(R.id.txtMessageDate)
+    TextView txtMessageDate;
+    @BindView(R.id.txt_message)
+    Typewriter txtWriter;
+    @BindView(R.id.imgBackgroud)
+    ImageView imgView;
     private MediaPlayer mediaPlayer;
     private static int TEXT_TO_SPEECH_REQUEST_CODE = 1;
 
@@ -82,15 +88,34 @@ public class MainActivity extends FragmentActivity {
         year = c.get(Calendar.YEAR);
         month = c.get(Calendar.MONTH);
         day = c.get(Calendar.DAY_OF_MONTH);
-        this.setDateText(year,month,day);
+        this.setDateText(year, month, day);
         update();
         setMessage(System.currentTimeMillis());
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_all_messages:
+                Intent intent = new Intent(this, MessagesActivity.class);
+                startActivity(intent);
+                return true;
+        }
+
+        return super.onOptionsItemSelected(item);
+    }
+
+
     /**
      * updates messages
      */
-    private void  update() {
+    private void update() {
         if (Utils.isWifiConnected(this)) {
             new UpdateManager(this).execute();
         }
@@ -99,6 +124,7 @@ public class MainActivity extends FragmentActivity {
 
     /**
      * sets the current message on screen, the song and image
+     *
      * @param timeInMillis
      */
     private void setMessage(long timeInMillis) {
@@ -107,12 +133,12 @@ public class MainActivity extends FragmentActivity {
         txtWriter.setCharacterDelay(150);
         txtWriter.animateText(currentMessage);
         //set random background
-        int imgId = getRandomResource("img_","drawable",TOTAL_IMAGE_FILES);
+        int imgId = getRandomResource("img_", "drawable", TOTAL_IMAGE_FILES);
         imgView.setImageResource(imgId);
         resetPlayer();
         playMusic();
         //say the message outloud
-        if( Utils.isWifiConnected(this) && !Utils.isOnSilence(this)) {
+        if (Utils.isWifiConnected(this) && !Utils.isOnSilence(this)) {
             Intent checkIntent = new Intent();
             checkIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
             startActivityForResult(checkIntent, TEXT_TO_SPEECH_REQUEST_CODE);
@@ -127,16 +153,15 @@ public class MainActivity extends FragmentActivity {
                 textToSpeech = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
                     @Override
                     public void onInit(int status) {
-                        if(status == TextToSpeech.SUCCESS){
-                            int result=textToSpeech.setLanguage(new Locale("spa","MEX"));
-                            if(result==TextToSpeech.LANG_MISSING_DATA ||
-                                    result==TextToSpeech.LANG_NOT_SUPPORTED){
+                        if (status == TextToSpeech.SUCCESS) {
+                            int result = textToSpeech.setLanguage(new Locale("spa", "MEX"));
+                            if (result == TextToSpeech.LANG_MISSING_DATA ||
+                                    result == TextToSpeech.LANG_NOT_SUPPORTED) {
                                 Log.e("error", "This Language is not supported");
-                            }
-                            else{
+                            } else {
                                 textToSpeech.speak(currentMessage, TextToSpeech.QUEUE_ADD, null);
                             }
-                        }else {
+                        } else {
                             Log.e("error", "Initialization Failed!");
                         }
                     }
@@ -160,14 +185,14 @@ public class MainActivity extends FragmentActivity {
 
     public void resetPlayer() {
         //play random music
-        if(mediaPlayer != null) {
+        if (mediaPlayer != null) {
             mediaPlayer.stop();
         }
-        mediaPlayer = MediaPlayer.create(this, getRandomResource("song_","raw",TOTAL_SONG_FILES));
+        mediaPlayer = MediaPlayer.create(this, getRandomResource("song_", "raw", TOTAL_SONG_FILES));
     }
 
     private void playMusic() {
-        if ( !Utils.isOnSilence(this) && !mediaPlayer.isPlaying()) {
+        if (!Utils.isOnSilence(this) && !mediaPlayer.isPlaying()) {
             mediaPlayer.start();
         }
     }
@@ -176,6 +201,7 @@ public class MainActivity extends FragmentActivity {
         mediaPlayer.pause();
 
     }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -184,49 +210,53 @@ public class MainActivity extends FragmentActivity {
 
     /**
      * calculates a random number and returns a random resource file (song or image)
-     * @param prefix currently only img_ and song_ are supported
-     * @param res_folder the resource folder where the resources are located
+     *
+     * @param prefix      currently only img_ and song_ are supported
+     * @param res_folder  the resource folder where the resources are located
      * @param total_files number of selectable resources in folder
      * @return
      */
     private int getRandomResource(String prefix, String res_folder, int total_files) {
-        int randomNum = 1 + (int)(Math.random() * total_files );
-        int resId = getResources().getIdentifier(prefix+randomNum, res_folder, getPackageName());
+        int randomNum = 1 + (int) (Math.random() * total_files);
+        int resId = getResources().getIdentifier(prefix + randomNum, res_folder, getPackageName());
         return resId;
     }
 
     /**
      * Gets today's message
+     *
      * @param timeInMillis the current day to deliver the message
      * @return
      */
     private String getMessage(long timeInMillis) {
         String message = getString(R.string.default_daily_message);
         long currentTime = SamalinneContract.normalizeDate(timeInMillis);
-        MessageDao messageDao= ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
+        MessageDao messageDao = ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
         QueryBuilder<Message> qb = messageDao.queryBuilder();
         qb.where(MessageDao.Properties.Date.eq(currentTime));
         Message dailyMessage = qb.count() >= 1 ? qb.list().get(0) : null;
-        if( dailyMessage != null)
-            message = "\""+dailyMessage.getMessage()+"\"";
+        if (dailyMessage != null)
+            message = "\"" + dailyMessage.getMessage() + "\"";
         return message;
     }
 
     /**
      * Sets the date of the message on screen and updates current date properties (year,month,day)
+     *
      * @param year
      * @param monthOfYear
      * @param dayOfMonth
      */
-    private void setDateText( int year, int monthOfYear, int dayOfMonth) {
+    private void setDateText(int year, int monthOfYear, int dayOfMonth) {
         this.year = year;
         this.month = monthOfYear;
         this.day = dayOfMonth;
-        this.txtMessageDate.setText(dayOfMonth + "/" + (monthOfYear+1) + "/" + year );
+        this.txtMessageDate.setText(dayOfMonth + "/" + (monthOfYear + 1) + "/" + year);
     }
 
     /**
      * Creates a calendar datepicker to change the message of the day
+     *
      * @param v
      */
     @OnClick(R.id.btnMessageDate)
@@ -235,25 +265,26 @@ public class MainActivity extends FragmentActivity {
         DatePickerDialog datePickerDialog = new DatePickerDialog(this, new DatePickerDialog.OnDateSetListener() {
             @Override
             public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                setDateText(year,monthOfYear,dayOfMonth);
-                c.set( year,  monthOfYear,  dayOfMonth);
+                setDateText(year, monthOfYear, dayOfMonth);
+                c.set(year, monthOfYear, dayOfMonth);
                 setMessage(c.getTimeInMillis());
             }
         }, year, month, day);
-        datePickerDialog.getDatePicker().setMaxDate(new Date().getTime()+(1000*60*60*24));
+        datePickerDialog.getDatePicker().setMaxDate(new Date().getTime() + (1000 * 60 * 60 * 24));
 
         datePickerDialog.show();
     }
 
     /**
      * shares screenshot to whatsapp
+     *
      * @param v
      */
     @OnClick(R.id.btnShareWhatsapp)
     public void shareScreenshot(View v) {
         /** * Show share dialog BOTH image and text */
         String imagePath = takeScreenshot();
-        if(imagePath ==null) {
+        if (imagePath == null) {
             return;
         }
         Uri imageUri = Uri.parse(imagePath);
@@ -278,11 +309,11 @@ public class MainActivity extends FragmentActivity {
 
     @OnClick(R.id.btnRandomMessage)
     public void randomMessage() {
-        MessageDao messageDao= ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
+        MessageDao messageDao = ((Samalinne) this.getApplication()).getDaoSession().getMessageDao();
         QueryBuilder<Message> qb = messageDao.queryBuilder();
         qb.orderRaw(" Random() ").limit(1);
         Message randomMessage = qb.count() >= 1 ? qb.list().get(0) : null;
-        if( randomMessage != null) setMessage(randomMessage.getDate());
+        if (randomMessage != null) setMessage(randomMessage.getDate());
     }
 
     private void openScreenshot(String path) {
@@ -294,7 +325,7 @@ public class MainActivity extends FragmentActivity {
     }
 
     private void sendToast(String message) {
-        Toast toast = Toast.makeText(this,message,Toast.LENGTH_LONG);
+        Toast toast = Toast.makeText(this, message, Toast.LENGTH_LONG);
         toast.show();
     }
 
@@ -305,13 +336,13 @@ public class MainActivity extends FragmentActivity {
         try {
             // create bitmap screen capture
             View v1 = getWindow().getDecorView().getRootView();
-            Bitmap bitmap =screenShot(v1);
-            path = MediaStore.Images.Media.insertImage(getContentResolver(),bitmap , "Samalinne", this.txtMessageDate.getText().toString());
+            Bitmap bitmap = screenShot(v1);
+            path = MediaStore.Images.Media.insertImage(getContentResolver(), bitmap, "Samalinne", this.txtMessageDate.getText().toString());
             openScreenshot(path);
         } catch (Throwable e) {
             // Several error may come out with file handling or OOM
             String errorMessage = getString(R.string.error_image_not_captured);
-            ErrorEvent errorEvent = new ErrorEvent(errorMessage,e.getMessage());
+            ErrorEvent errorEvent = new ErrorEvent(errorMessage, e.getMessage());
             EventBus.getDefault().post(errorEvent);
         }
         return path;
@@ -326,13 +357,13 @@ public class MainActivity extends FragmentActivity {
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onErrorEvent(ErrorEvent errorEvent){
+    public void onErrorEvent(ErrorEvent errorEvent) {
         sendToast(errorEvent.getMessage());
-        if(BuildConfig.DEBUG) Log.e(TAG, errorEvent.getDevMessage());
+        if (BuildConfig.DEBUG) Log.e(TAG, errorEvent.getDevMessage());
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void onMessageEvent(MessageEvent messageEvent){
+    public void onMessageEvent(MessageEvent messageEvent) {
         Log.d(TAG, "onMessageEvent: llegaron mensajes");
         this.setMessage(System.currentTimeMillis());
     }
